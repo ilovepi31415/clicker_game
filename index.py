@@ -1,4 +1,5 @@
 import json
+import math
 import pygame
 
 
@@ -16,7 +17,7 @@ with open(filename, 'r') as file:
 
 # Assign JSON values to python variables
 score = data['score']
-upgrades_1 = data['upgrades_1']
+upgrades = data['upgrades_1']
 points_per_click = data['points_per_click']
 
 class Button:
@@ -41,13 +42,23 @@ class Button:
             self.clicked = False
         return False
 
-def can_upgrade():
-    global score
-    price = int(1.5**upgrades_1[0])
-    if score >= price:
-        score -= price
-        return True
-    return False
+def get_price(tier):
+    level = upgrades[tier - 1]
+    if level < 6:
+        price = 2 ** level
+    else:
+        price = int(1.2 ** level) + 32 * (level - 4)
+    return price
+
+def format_big_number(n):
+    if n < 1000: return n
+    symbols = ['', 'K', 'M', 'B', 'T', 'q', 'Q', 's', 'S', 'O', 'N', 'd', 'Ud', 'Dd', 'Td', 'qd', 'Qd', 'sd', 'Sd', 'Od', 'Nd', 'V']
+    orders_of_magnitude = int(math.log(n, 10) / 3)
+    small = int(n / (1000 ** orders_of_magnitude) * 10) / 10
+    if orders_of_magnitude < len(symbols):
+        return str(small) + symbols[orders_of_magnitude]
+    else: return str(small) + 'e' + str(orders_of_magnitude * 3)
+
 
 # Pygame initialization
 pygame.init()
@@ -56,8 +67,8 @@ pygame.display.set_caption('Clicker Game v0.1')
 pixel_font = pygame.font.Font('pixelType.ttf', 50)
 clock = pygame.time.Clock()
 
-main_button = Button(100, 200, pygame.image.load('icons/score_button.png').convert_alpha(), pygame.image.load(
-    'icons/score_clicked.png').convert_alpha(), 7)
+main_button = Button(70, 200, pygame.image.load('icons/score_button.png').convert_alpha(), pygame.image.load(
+    'icons/score_clicked.png').convert_alpha(), 10)
 clear_button = Button(500, 200, pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
     'icons/clear_clicked.png').convert_alpha(), 5)
 upgrade_button = Button(500, 100, pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
@@ -77,17 +88,19 @@ while run:
     if clear_button.draw():
         score = 0
         points_per_click = 1
-        upgrades_1 = [0, 0, 0, 0]
+        upgrades = [0, 0, 0, 0]
     if upgrade_button.draw():
-        if can_upgrade():
-            upgrades_1[0] += 1
+        price = get_price(1)
+        if price <= score:
+            score -= price
+            upgrades[0] += 1
             points_per_click += 1
 
-    score_surf = pixel_font.render(f'Score: {score}', False, (255, 255, 255))
+    score_surf = pixel_font.render(f'Score: {format_big_number(score)}', False, (255, 255, 255))
     score_rect = score_surf.get_rect(center=(400, 350))
     screen.blit(score_surf, score_rect)
 
-    price_surf = pixel_font.render(f'Price: {int(1.5 ** upgrades_1[0])}', False, (255, 255, 255))
+    price_surf = pixel_font.render(f'Price: {format_big_number(get_price(1))}', False, (255, 255, 255))
     price_rect = price_surf.get_rect(center=(400, 250))
     screen.blit(price_surf, price_rect)
 
@@ -97,7 +110,7 @@ while run:
 pygame.quit()
 
 data['score'] = score
-data['upgrades_1'] = upgrades_1
+data['upgrades_1'] = upgrades
 data['points_per_click'] = points_per_click
 
 with open(filename, 'w') as file:
