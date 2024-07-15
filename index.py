@@ -1,6 +1,7 @@
 import json
 import math
 import pygame
+from random import randint
 
 
 # Info for loading and saving data
@@ -24,15 +25,15 @@ unlocks = data['upgrade_unlocks']
 
 class Button:
     def __init__(self, x, y, image, clicked, scale = 1):
-        width = image.get_width()
-        height = image.get_height()
-        self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
-        self.image_clicked = pygame.transform.scale(clicked, (int(width * scale), int(height * scale)))
+        self.width = int(image.get_width() * scale)
+        self.height = int(image.get_height() * scale)
+        self.image = pygame.transform.scale(image, (self.width, self.height))
+        self.image_clicked = pygame.transform.scale(clicked, (self.width, self.height))
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.clicked = False
 
-    def draw(self):
+    def draw(self): # Checks for mouse click on button and draws it to the screen
         pos = pygame.mouse.get_pos()
         if self.rect.collidepoint(pos) and pygame.mouse.get_pressed()[0] == 1:
             screen.blit(self.image_clicked, (self.rect.x, self.rect.y))
@@ -44,27 +45,46 @@ class Button:
             self.clicked = False
         return False
 
+
 class Upgrade(Button):
-    def __init__(self, x, y, image, clicked, title, price, scale = 1, locked = True):
+    def __init__(self, id, x, y, image, clicked, title, price, scale = 1, locked = True):
         super().__init__(x, y, image, clicked, scale)
         self.locked_image = pygame.image.load('icons/button_locked.png')
-        width = self.locked_image.get_width()
-        height = self.locked_image.get_height()
-        self.locked_image = pygame.transform.scale(self.locked_image, (width * scale, height * scale))
-        self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
+        self.width = int(self.locked_image.get_width() * scale)
+        self.height = int(self.locked_image.get_height() * scale)
+        self.locked_image = pygame.transform.scale(self.locked_image, (self.width, self.height))
         self.title = title
         self.price = price
         self.locked = locked
 
     def draw(self):
+
         if not self.locked:
             return super().draw()
         else:
             screen.blit(self.locked_image, (self.rect.x, self.rect.y))
 
+#Still needs a lot of work
+class Number_Graphic(pygame.sprite.Sprite):
+    def __init__(self, n, pos, width, height):
+        super().__init__()
+        self.n = n
+        self.x = randint(pos[0], pos[0] + width)
+        self.y = randint(pos[1], pos[1] + height)
+        self.opacity = 255
 
+    def update(self):
+        graphic_surf = body_font.render(f'$ {format_big_number(self.n)}', False, (255, 255, 255))
+        graphic_surf.set_alpha(self.opacity)
+        graphic_rect = graphic_surf.get_rect(center=(self.x, self.y))
+        graphic_rect.width
+        screen.blit(graphic_surf, graphic_rect)
+        self.opacity = (self.opacity / 1.05) - 1
+        self.destroy()
 
-
+    def destroy(self):
+        if self.opacity <= 0:
+            self.kill()
 
 
 def get_price(tier):
@@ -84,6 +104,11 @@ def format_big_number(n):
         return str(small) + symbols[orders_of_magnitude]
     else: return str(small) + 'e' + str(orders_of_magnitude * 3)
 
+def number_graphic(n, pos, width, height):
+    score_surf = body_font.render(f'$ {format_big_number(n)}', False, (255, 255, 255))
+    score_rect = score_surf.get_rect(center=(pos[0] + randint(0, width), pos[1] + randint(0, height)))
+    screen.blit(score_surf, score_rect)
+
 
 # Pygame initialization
 pygame.init()
@@ -97,11 +122,12 @@ main_button = Button(70, 200, pygame.image.load('icons/score_button.png').conver
     'icons/score_clicked.png').convert_alpha(), 10)
 clear_button = Button(500, 200, pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
     'icons/clear_clicked.png').convert_alpha(), 5)
-upgrade_button = Upgrade(500, 100, pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
+upgrade_button = Upgrade(1, 500, 100, pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
     'icons/upgrade_clicked.png').convert_alpha(), 'hi', 2, 5, unlocks[0])
 
+click_graphic_group = pygame.sprite.Group()
 
-# Game Loop goes here
+# Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
 while run:
     screen.fill((0, 0, 0))
@@ -111,6 +137,8 @@ while run:
 
     if main_button.draw():
         score += points_per_click
+        click_graphic_group.add(Number_Graphic(points_per_click, main_button.rect.topleft, main_button.width, main_button.height))
+        # number_graphic(points_per_click, main_button.rect.topleft, main_button.width, main_button.height)
     if clear_button.draw():
         score = 0
         points_per_click = 1
@@ -126,6 +154,8 @@ while run:
         unlocks[0] = False
     upgrade_button.locked = unlocks[0]
 
+    click_graphic_group.update()
+
     score_surf = title_font.render(f'$ {format_big_number(score)}', False, (255, 255, 255))
     score_rect = score_surf.get_rect(center=(400, 350))
     screen.blit(score_surf, score_rect)
@@ -136,7 +166,7 @@ while run:
 
     pygame.display.update()
     clock.tick(60)
-
+# ----------------------------------------------------------------------------------------------------------------------
 pygame.quit()
 
 data['score'] = score
