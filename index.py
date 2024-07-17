@@ -11,7 +11,8 @@ data = {  # Defaults
     'upgrades': [0, 0, 0, 0],
     'upgrade_unlocks' : [True, True, True, True],
     'points_per_click': 1,
-    'points_per_second': 0
+    'points_per_second': 0,
+    'crit_chance': 0
 }
 
 with open(filename, 'r') as file:
@@ -24,7 +25,7 @@ upgrades = data['upgrades']
 points_per_click = data['points_per_click']
 unlocks = data['upgrade_unlocks']
 points_per_second = data['points_per_second']
-crit_chance = 50
+crit_chance = data['crit_chance']
 
 class Button:
     def __init__(self, x, y, image, clicked, scale = 1):
@@ -77,15 +78,17 @@ class Upgrade(Button):
 
 #Still needs a lot of work
 class Number_Graphic(pygame.sprite.Sprite):
-    def __init__(self, n, pos, width, height):
+    def __init__(self, n, pos, width, height, crit):
         super().__init__()
         self.n = n
         self.x = randint(pos[0], pos[0] + width)
         self.y = randint(pos[1], pos[1] + height)
         self.opacity = 255
+        self.color = (200, 200, 0) if crit == 2 else (255, 255, 255)
+        self.crit = crit
 
     def update(self):
-        graphic_surf = body_font.render(f'$ {format_big_number(self.n)}', False, (255, 255, 255))
+        graphic_surf = title_font.render(f'$ {format_big_number(self.n)}', False, self.color) if self.crit == 2 else body_font.render(f'$ {format_big_number(self.n)}', False, self.color)
         graphic_surf.set_alpha(self.opacity)
         graphic_rect = graphic_surf.get_rect(center=(self.x, self.y))
         graphic_rect.width
@@ -98,9 +101,9 @@ class Number_Graphic(pygame.sprite.Sprite):
             self.kill()
 
 
-def check_crit(base, chance):
+def check_crit(chance):
     benchmark = randint(1, 100)
-    return base * 2 if chance >= benchmark else base
+    return 2 if chance >= benchmark else 1
 
 def exp_price(tier):
     level = upgrades[tier - 1]
@@ -164,14 +167,16 @@ while run:
 
     if main_button.draw():
         # Creates the small graphic on the button and adds the money to the user's total
-        added_points = check_crit(points_per_click, crit_chance)
+        crit_mult =  check_crit(crit_chance)
+        added_points = points_per_click * crit_mult
         score += added_points
-        click_graphic_group.add(Number_Graphic(added_points, main_button.rect.topleft, main_button.width, main_button.height))
+        click_graphic_group.add(Number_Graphic(added_points, main_button.rect.topleft, main_button.width, main_button.height, crit_mult))
     if clear_button.draw():
         # Resets all values to the defaults as if the user opened a fresh copy
         score = 0
         points_per_click = 1
         points_per_second = 0
+        crit_chance = 0
         upgrades = [0, 0, 0, 0]
         unlocks = [True, True, True, True]
     if upgrade_1.draw():
@@ -189,7 +194,7 @@ while run:
             points_per_second += 1
     if score >= 10 and upgrade_1.locked:
         unlocks[0] = False
-    if score >= 10 ** 3 and upgrade_2.locked:
+    if score >= 10 ** 2 and upgrade_2.locked:
         unlocks[1] = False
     upgrade_1.locked = unlocks[0]
     upgrade_2.locked = unlocks[1]
@@ -214,6 +219,7 @@ data['upgrades'] = upgrades
 data['points_per_click'] = points_per_click
 data['upgrade_unlocks'] = unlocks
 data['points_per_second'] = points_per_second
+data['crit_chance'] = crit_chance
 
 with open(filename, 'w') as file:
     json.dump(data, file)
