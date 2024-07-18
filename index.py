@@ -9,10 +9,7 @@ filename = 'savefile.json'
 data = {  # Defaults
     'score': 0,
     'upgrades': [0, 0, 0, 0],
-    'upgrade_unlocks' : [True, True, True, True],
-    'points_per_click': 1,
-    'points_per_second': 0,
-    'crit_chance': 0
+    'upgrade_unlocks' : [True, True, True, True]
 }
 
 with open(filename, 'r') as file:
@@ -22,10 +19,10 @@ with open(filename, 'r') as file:
 # Assign JSON values to python variables
 score = data['score']
 upgrades = data['upgrades']
-points_per_click = data['points_per_click']
 unlocks = data['upgrade_unlocks']
-points_per_second = data['points_per_second']
-crit_chance = data['crit_chance']
+points_per_click = upgrades[0] + 1
+points_per_second = upgrades[1]
+crit_chance = upgrades[2]
 
 class Button:
     def __init__(self, x, y, image, clicked, scale = 1):
@@ -150,6 +147,8 @@ upgrade_1 = Upgrade(1, 500, 100, pygame.image.load('icons/upgrade_button.png').c
     'icons/upgrade_clicked.png').convert_alpha(), '+$1 / click', 5, unlocks[0])
 upgrade_2 = Upgrade(2, 500, 175, pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
     'icons/upgrade_clicked.png').convert_alpha(), '+$1 / second', 5, unlocks[1])
+upgrade_3 = Upgrade(3, 500, 250, pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
+    'icons/upgrade_clicked.png').convert_alpha(), '+1% crit chance', 5, unlocks[2])
 
 click_graphic_group = pygame.sprite.Group()
 
@@ -192,12 +191,21 @@ while run:
             score -= price
             upgrades[1] += 1
             points_per_second += 1
+    if upgrade_3.draw():
+        price = get_price(upgrade_3.id)
+        if price <=  score:
+            score -= price
+            upgrades[2] += 1
+            crit_chance += 1
     if score >= 10 and upgrade_1.locked:
         unlocks[0] = False
     if score >= 10 ** 2 and upgrade_2.locked:
         unlocks[1] = False
+    if score >= 10 ** 3 and upgrade_3.locked:
+        unlocks[2] = False
     upgrade_1.locked = unlocks[0]
     upgrade_2.locked = unlocks[1]
+    upgrade_3.locked = unlocks[2]
 
 
 
@@ -216,10 +224,7 @@ pygame.quit()
 
 data['score'] = score
 data['upgrades'] = upgrades
-data['points_per_click'] = points_per_click
 data['upgrade_unlocks'] = unlocks
-data['points_per_second'] = points_per_second
-data['crit_chance'] = crit_chance
 
 with open(filename, 'w') as file:
     json.dump(data, file)
