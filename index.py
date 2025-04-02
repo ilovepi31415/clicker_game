@@ -81,11 +81,11 @@ class Number_Graphic(pygame.sprite.Sprite):
         self.x = randint(pos[0], pos[0] + width)
         self.y = randint(pos[1], pos[1] + height)
         self.opacity = 255
-        self.color = (200, 200, 0) if crit == 2 else (255, 255, 255)
+        self.color = (255, 255, 255) if crit == 1 else (200, 200, 0) if crit == 2 else (0, 200, 200)
         self.crit = crit
 
     def update(self):
-        graphic_surf = title_font.render(f'$ {format_big_number(self.n)}', False, self.color) if self.crit == 2 else body_font.render(f'$ {format_big_number(self.n)}', False, self.color)
+        graphic_surf = body_font.render(f'$ {format_big_number(self.n)}', False, self.color) if self.crit == 1 else title_font.render(f'$ {format_big_number(self.n)}', False, self.color)
         graphic_surf.set_alpha(self.opacity)
         graphic_rect = graphic_surf.get_rect(center=(self.x, self.y))
         graphic_rect.width
@@ -100,7 +100,7 @@ class Number_Graphic(pygame.sprite.Sprite):
 
 def check_crit(chance):
     benchmark = randint(1, 100)
-    return 2 if chance >= benchmark else 1
+    return 1 if chance < benchmark else int((chance - benchmark) /100) + 2
 
 def exp_price(tier):
     level = upgrades[tier - 1]
@@ -132,7 +132,7 @@ def format_big_number(n):
 # Pygame initialization
 pygame.init()
 screen = pygame.display.set_mode((800, 500))
-pygame.display.set_caption('Clicker Game v0.1')
+pygame.display.set_caption('Clicker Game v0.2')
 title_font = pygame.font.Font('pixelType.ttf', 70)
 body_font = pygame.font.Font('pixelType.ttf', 40)
 sub_font = pygame.font.Font('pixelType.ttf', 25)
