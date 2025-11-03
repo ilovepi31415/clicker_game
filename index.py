@@ -2,7 +2,7 @@ import json
 import math
 import pygame
 from random import randint
-
+from button import Button
 
 # Info for loading and saving data
 filename = 'savefile.json'
@@ -29,28 +29,11 @@ points_per_second = upgrades[1]
 crit_chance = upgrades[2]
 game_phase = data['game_phase']
 
-class Button:
-    def __init__(self, pos, image, clicked, scale = 1):
-        self.width = int(image.get_width() * scale)
-        self.height = int(image.get_height() * scale)
-        self.image = pygame.transform.scale(image, (self.width, self.height))
-        self.image_clicked = pygame.transform.scale(clicked, (self.width, self.height))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = pos
-        self.clicked = False
-
-    # Checks for mouse click on button and draws it to the screen
-    def draw(self):
-        pos = pygame.mouse.get_pos()
-        if self.rect.collidepoint(pos) and pygame.mouse.get_pressed()[0] == 1:
-            screen.blit(self.image_clicked, (self.rect.x, self.rect.y))
-            if not self.clicked:
-                self.clicked = True
-                return True
-        else: screen.blit(self.image, (self.rect.x, self.rect.y))
-        if pygame.mouse.get_pressed()[0] == 0:
-            self.clicked = False
-        return False
+# Allows easy setting of window sizes
+window_sizes_by_phase = {
+    1: (800, 350),
+    2: (1200, 350),
+}
 
 # Class for the upgrade buttons
 class Upgrade(Button):
@@ -66,7 +49,7 @@ class Upgrade(Button):
         self.y = pos[1]
         self.id = id
 
-    def draw(self):
+    def draw(self, screen):
         title_surf = body_font.render(self.title, False, (255, 255, 255))
         title_rect = title_surf.get_rect(topleft=(self.x + self.width + 20, self.y + 5))
         screen.blit(title_surf, title_rect)
@@ -74,7 +57,7 @@ class Upgrade(Button):
         price_rect = price_surf.get_rect(topleft=(self.x + self.width + 20, self.y + 30))
         screen.blit(price_surf, price_rect)
         if not self.locked:
-            return super().draw()
+            return super().draw(screen)
         else:
             screen.blit(self.locked_image, (self.rect.x, self.rect.y))
 
@@ -101,7 +84,6 @@ class Number_Graphic(pygame.sprite.Sprite):
     def destroy(self):
         if self.opacity <= 0:
             self.kill()
-
 
 def check_crit(chance):
     benchmark = randint(1, 100)
@@ -132,11 +114,12 @@ def format_big_number(n):
         return str(small) + symbols[orders_of_magnitude]
     else: return str(small) + 'e' + str(orders_of_magnitude * 3)
 
-
+def update_window_size():
+    return pygame.display.set_mode(window_sizes_by_phase[game_phase])
 
 # Pygame initialization
 pygame.init()
-screen = pygame.display.set_mode((800, 350))
+screen = update_window_size()
 pygame.display.set_caption('Clicker Game v0.2')
 title_font = pygame.font.Font('pixelType.ttf', 70)
 body_font = pygame.font.Font('pixelType.ttf', 40)
@@ -162,6 +145,11 @@ pygame.time.set_timer(passive_income_timer, 1000)
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
 while run:
+    # Check game phase
+    if game_phase == 1 and score >= 10000:
+        game_phase = 2
+        screen = update_window_size()
+    
     screen.fill((0, 0, 0))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -169,13 +157,13 @@ while run:
         if event.type == passive_income_timer:
             score += points_per_second
 
-    if main_button.draw():
+    if main_button.draw(screen):
         # Creates the small graphic on the button and adds the money to the user's total
         crit_mult =  check_crit(crit_chance)
         added_points = points_per_click * crit_mult
         score += added_points
         click_graphic_group.add(Number_Graphic(added_points, main_button.rect.topleft, main_button.width, main_button.height, crit_mult))
-    if clear_button.draw():
+    if clear_button.draw(screen):
         # Resets all values to the defaults as if the user opened a fresh copy
         score = 0
         points_per_click = 1
@@ -183,21 +171,23 @@ while run:
         crit_chance = 0
         upgrades = [0, 0, 0, 0]
         unlocks = [True, True, True, True]
+        game_phase = 1
+        update_window_size()
 
     # Attempts to purchase an upgrade if a button is clicked
-    if upgrade_click_power.draw():
+    if upgrade_click_power.draw(screen):
         price = get_price(upgrade_click_power.id)
         if price <= score:
             score -= price
             upgrades[0] += 1
             points_per_click += 1
-    if upgrade_passive_income.draw():
+    if upgrade_passive_income.draw(screen):
         price = get_price(upgrade_passive_income.id)
         if price <=  score:
             score -= price
             upgrades[1] += 1
             points_per_second += 1
-    if upgrade_crit_chance.draw():
+    if upgrade_crit_chance.draw(screen):
         price = get_price(upgrade_crit_chance.id)
         if price <=  score:
             score -= price
@@ -222,6 +212,11 @@ while run:
     score_surf = title_font.render(f'$ {format_big_number(score)}', False, (255, 255, 255))
     score_rect = score_surf.get_rect(center=(400, 300))
     screen.blit(score_surf, score_rect)
+
+    if game_phase > 1:
+        rect = pygame.Surface((10, 350))
+        rect.fill((255, 255, 255))
+        screen.blit(rect, (800, 0))
 
     pygame.display.update()
     clock.tick(60)
