@@ -13,9 +13,12 @@ data = {  # Defaults
     'game_phase': 1,
 }
 
-with open(filename, 'r') as file:
-    json_data = json.load(file)
-    data.update(json_data)
+try:
+    with open(filename, 'r') as file:
+        json_data = json.load(file)
+        data.update(json_data)
+except FileNotFoundError:
+    pass
 
 # Assign JSON values to python variables
 score = data['score']
