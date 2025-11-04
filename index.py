@@ -3,6 +3,7 @@ import math
 import pygame
 from random import randint
 from button import Button
+from rectangle import Rectangle
 
 # Info for loading and saving data
 filename = 'savefile.json'
@@ -38,7 +39,7 @@ window_sizes_by_phase = {
 # Class for the upgrade buttons
 class Upgrade(Button):
     def __init__(self, id, pos, image, clicked, title, scale = 1, locked = True):
-        super().__init__(pos, image, clicked, scale)
+        super().__init__(pos, image, clicked, scale, locked)
         self.locked_image = pygame.image.load('icons/button_locked.png')
         self.width = int(self.locked_image.get_width() * scale)
         self.height = int(self.locked_image.get_height() * scale)
@@ -72,7 +73,7 @@ class Number_Graphic(pygame.sprite.Sprite):
         self.color = (255, 255, 255) if crit == 1 else (200, 200, 0) if crit == 2 else (0, 200, 200)
         self.crit = crit
 
-    def update(self):
+    def update(self, screen):
         graphic_surf = body_font.render(f'$ {format_big_number(self.n)}', False, self.color) if self.crit == 1 else title_font.render(f'$ {format_big_number(self.n)}', False, self.color)
         graphic_surf.set_alpha(self.opacity)
         graphic_rect = graphic_surf.get_rect(center=(self.x, self.y))
@@ -127,6 +128,7 @@ sub_font = pygame.font.Font('pixelType.ttf', 25)
 
 clock = pygame.time.Clock()
 
+# Phase 1 Buttons
 main_button = Button((70, 150), pygame.image.load('icons/score_button.png').convert_alpha(), pygame.image.load(
     'icons/score_clicked.png').convert_alpha(), 10)
 clear_button = Button((0, 0), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
@@ -141,6 +143,18 @@ click_graphic_group = pygame.sprite.Group()
 
 passive_income_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(passive_income_timer, 1000)
+
+# Phase 2 Buttons
+ttt_buttons = []
+for i in range(9):
+    tile = Button((875 + (100 * (i % 3)), 50 + (100 * (i // 3))), pygame.image.load('icons/tic_tac_toe_x.png').convert_alpha(), pygame.image.load('icons/tic_tac_toe_x.png'), 10)
+    ttt_buttons.append(tile)
+ttt_bars = []
+for i in range(2):
+    h_bar = Rectangle((850, 25 + 100 * (i + 1) - 3), (300, 6))
+    v_bar = Rectangle((850 + 100 * (i + 1) - 3, 25), (6, 300))
+    ttt_bars.append(h_bar)
+    ttt_bars.append(v_bar)
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -217,6 +231,10 @@ while run:
         rect = pygame.Surface((10, 350))
         rect.fill((255, 255, 255))
         screen.blit(rect, (800, 0))
+        for tile in ttt_buttons:
+            tile.draw(screen)
+        for bar in ttt_bars:
+            bar.draw(screen)        
 
     pygame.display.update()
     clock.tick(60)

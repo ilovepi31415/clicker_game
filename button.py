@@ -1,7 +1,7 @@
 import pygame
 
 class Button:
-    def __init__(self, pos, image, clicked, scale = 1):
+    def __init__(self, pos, image, clicked, scale = 1, locked = False):
         self.width = int(image.get_width() * scale)
         self.height = int(image.get_height() * scale)
         self.image = pygame.transform.scale(image, (self.width, self.height))
@@ -9,7 +9,8 @@ class Button:
         self.rect = self.image.get_rect()
         self.rect.topleft = pos
         self.clicked = False
-
+        self.locked = locked
+        
     # Checks for mouse click on button and draws it to the screen
     def draw(self, screen):
         pos = pygame.mouse.get_pos()
