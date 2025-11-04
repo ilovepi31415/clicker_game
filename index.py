@@ -2,8 +2,9 @@ import json
 import math
 import pygame
 from random import randint
-from button import Button
+from button import Button, TTT_Tile
 from rectangle import Rectangle
+from tictactoe import GameBoard
 
 # Info for loading and saving data
 filename = 'savefile.json'
@@ -73,7 +74,7 @@ class Number_Graphic(pygame.sprite.Sprite):
         self.color = (255, 255, 255) if crit == 1 else (200, 200, 0) if crit == 2 else (0, 200, 200)
         self.crit = crit
 
-    def update(self, screen):
+    def update(self):
         graphic_surf = body_font.render(f'$ {format_big_number(self.n)}', False, self.color) if self.crit == 1 else title_font.render(f'$ {format_big_number(self.n)}', False, self.color)
         graphic_surf.set_alpha(self.opacity)
         graphic_rect = graphic_surf.get_rect(center=(self.x, self.y))
@@ -145,9 +146,9 @@ passive_income_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(passive_income_timer, 1000)
 
 # Phase 2 Buttons
-ttt_buttons = []
+ttt_buttons: list[TTT_Tile] = []
 for i in range(9):
-    tile = Button((875 + (100 * (i % 3)), 50 + (100 * (i // 3))), pygame.image.load('icons/tic_tac_toe_x.png').convert_alpha(), pygame.image.load('icons/tic_tac_toe_x.png'), 10)
+    tile = TTT_Tile((875 + (100 * (i % 3)), 50 + (100 * (i // 3))), pygame.image.load('icons/tic_tac_toe_blank.png').convert_alpha(), pygame.image.load('icons/tic_tac_toe_x.png').convert_alpha(), pygame.image.load('icons/tic_tac_toe_o.png').convert_alpha(), 10)
     ttt_buttons.append(tile)
 ttt_bars = []
 for i in range(2):
@@ -155,6 +156,7 @@ for i in range(2):
     v_bar = Rectangle((850 + 100 * (i + 1) - 3, 25), (6, 300))
     ttt_bars.append(h_bar)
     ttt_bars.append(v_bar)
+board = GameBoard()
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -231,8 +233,26 @@ while run:
         rect = pygame.Surface((10, 350))
         rect.fill((255, 255, 255))
         screen.blit(rect, (800, 0))
-        for tile in ttt_buttons:
-            tile.draw(screen)
+
+        # Handle Tic-Tac-Toe logic
+        for i in range(len(ttt_buttons)):
+            tile = ttt_buttons[i]
+            # Write AI moves to screen
+            if board.state[i] == 2 and not tile.locked:
+                tile.place_ai()
+            if board.state[i] == 0 and tile.locked:
+                tile.clear()
+            if board.check_winner(1):
+                board = GameBoard()
+            if board.check_winner(2):
+                board = GameBoard()
+            if tile.draw(screen):
+                tile.place_human()
+                board.move_human(i)
+                if board.check_cat():
+                    board = GameBoard()
+                else:
+                    board.move_ai_good()
         for bar in ttt_bars:
             bar.draw(screen)        
 

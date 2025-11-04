@@ -1,2 +1,3 @@
 venv/
 savefile.json
+__pycache__/

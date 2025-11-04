@@ -15,9 +15,8 @@ class GameBoard():
         self.state[tile] = player
         self.turn += 1
 
-    def move_human(self):
+    def move_human(self, move=None):
         self.human_turn = False
-        move = None
         while not isinstance(move, int) or self.state[move]:
             move = int(input("Move: "))
         self.place(move, PLAYER)
@@ -29,28 +28,33 @@ class GameBoard():
         self.place(move, AI)
         self.human_turn = True
 
-    def move_ai_naive(self):
-        self.human_turn = True
+    def move_ai_block(self):
         for i in range(len(self.state)):
             if self.state[i] == 0:
                 self.state[i] = AI
                 if self.check_winner(AI):
                     self.place(i, AI)
-                    return
+                    return True
                 self.state[i] = 0
         for i in range(len(self.state)):
             if self.state[i] == 0:
                 self.state[i] = PLAYER
                 if self.check_winner(PLAYER):
                     self.place(i, AI)
-                    return
+                    return True
                 self.state[i] = 0
-        self.move_ai_random()
-    
-    def move_ai_perfect(self):
+
+    def move_ai_naive(self):
         self.human_turn = True
+        if not self.move_ai_block():
+            self.move_ai_random()
+    
+    def move_ai_good(self):
+        self.human_turn = True
+        if self.move_ai_block():
+            return
         if self.turn == 0:
-            self.place(5, AI)
+            self.place(4, AI)
             return
         elif self.turn == 1:
             if self.state[4]:
@@ -71,7 +75,7 @@ class GameBoard():
             elif not (self.state[3] or self.state[5]):
                 self.place(3, AI)
                 return
-        self.move_ai_naive()
+        self.move_ai_random()
 
     def display(self):
         for row in range(3):
@@ -96,6 +100,9 @@ class GameBoard():
                 self.state[0] == self.state[4] == self.state[8] == player or
                 self.state[2] == self.state[4] == self.state[6] == player
             )
+    
+    def check_cat(self):
+        return self.turn == 9
 
 def main():
     print("hi tic tac toe")
@@ -108,7 +115,7 @@ def main():
                 print("Player wins")
                 break
         else:
-            board.move_ai_perfect()
+            board.move_ai_good()
             board.display()
             if board.check_winner(AI):
                 print("AI wins")
