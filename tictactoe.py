@@ -103,6 +103,13 @@ class GameBoard():
     
     def check_cat(self):
         return self.turn == 9
+    
+    def game_over(self):
+        return self.check_cat() or self.check_winner(AI) or self.check_winner(PLAYER)
+
+    def clear(self):
+        for i in range(len(self.state)):
+            self.state[i] = 0
 
 def main():
     print("hi tic tac toe")

@@ -33,15 +33,22 @@ class TTT_Tile(Button):
 
     def draw(self, screen):
         return super().draw(screen)
+    
+    def was_clicked(self, screen):
+        pos = pygame.mouse.get_pos()
+        return self.rect.collidepoint(pos) and pygame.mouse.get_pressed()[0] == 1 and not self.locked
 
     def place_human(self):
         self.image = self.image_x
+        self.image_clicked = self.image
         self.locked = True
     
     def place_ai(self):
         self.image = self.image_o
+        self.image_clicked = self.image
         self.locked = True
     
     def clear(self):
         self.image = self.image_blank
+        self.image_clicked = self.image
         self.locked = False

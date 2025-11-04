@@ -237,27 +237,32 @@ while run:
         # Handle Tic-Tac-Toe logic
         for i in range(len(ttt_buttons)):
             tile = ttt_buttons[i]
-            # Write AI moves to screen
+            # Loop through the tiles and check for clicks
+            if not board.game_over() and tile.was_clicked(screen):
+                board.move_human(i)
+                if not board.game_over():
+                    board.move_ai_naive()
+        # Draw tiles to the screen
+        for i in range(len(ttt_buttons)):
+            tile = ttt_buttons[i]
+            if board.state[i] == 1 and not tile.locked:
+                tile.place_human()
             if board.state[i] == 2 and not tile.locked:
                 tile.place_ai()
             if board.state[i] == 0 and tile.locked:
                 tile.clear()
-            if board.check_winner(1):
-                board = GameBoard()
-            if board.check_winner(2):
-                board = GameBoard()
-            if tile.draw(screen):
-                tile.place_human()
-                board.move_human(i)
-                if board.check_cat():
-                    board = GameBoard()
-                else:
-                    board.move_ai_good()
+            tile.draw(screen)
         for bar in ttt_bars:
-            bar.draw(screen)        
+            bar.draw(screen)
 
     pygame.display.update()
     clock.tick(60)
+
+    if board.game_over():
+        if board.check_winner(1):
+            score += 1000
+        pygame.time.wait(1000)
+        board = GameBoard()
 # ----------------------------------------------------------------------------------------------------------------------
 pygame.quit()
 
