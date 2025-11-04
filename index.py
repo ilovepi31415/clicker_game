@@ -157,6 +157,7 @@ for i in range(2):
     ttt_bars.append(h_bar)
     ttt_bars.append(v_bar)
 board = GameBoard()
+cooldown = None
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -259,10 +260,15 @@ while run:
     clock.tick(60)
 
     if board.game_over():
-        if board.check_winner(1):
-            score += 1000
-        pygame.time.wait(1000)
-        board = GameBoard()
+        if not cooldown:
+            cooldown = 10000
+            start = pygame.time.get_ticks()
+            if board.check_winner(1):
+                score += 1000
+        now = pygame.time.get_ticks()
+        if now - start > cooldown:
+            board = GameBoard()
+            cooldown = None
 # ----------------------------------------------------------------------------------------------------------------------
 pygame.quit()
 
