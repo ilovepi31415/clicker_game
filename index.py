@@ -13,6 +13,7 @@ data = {  # Defaults
     'upgrades': [0, 0, 0, 0],
     'upgrade_unlocks' : [True, True, True, True],
     'game_phase': 1,
+    'wins': 0
 }
 
 try:
@@ -29,17 +30,19 @@ unlocks = data['upgrade_unlocks']
 points_per_click = upgrades[0] + 1
 points_per_second = upgrades[1]
 crit_chance = upgrades[2]
+ttt_cooldown = 10 - upgrades[3]
 game_phase = data['game_phase']
+wins = data['wins']
 
 # Allows easy setting of window sizes
 window_sizes_by_phase = {
     1: (800, 350),
-    2: (1200, 350),
+    2: (1500, 350),
 }
 
 # Class for the upgrade buttons
 class Upgrade(Button):
-    def __init__(self, id, pos, image, clicked, title, scale = 1, locked = True):
+    def __init__(self, id, pos, image, clicked, title, currency, scale = 1, locked = True):
         super().__init__(pos, image, clicked, scale, locked)
         self.locked_image = pygame.image.load('icons/button_locked.png')
         self.width = int(self.locked_image.get_width() * scale)
@@ -50,12 +53,18 @@ class Upgrade(Button):
         self.x = pos[0]
         self.y = pos[1]
         self.id = id
+        self.currency = currency
 
     def draw(self, screen):
         title_surf = body_font.render(self.title, False, (255, 255, 255))
         title_rect = title_surf.get_rect(topleft=(self.x + self.width + 20, self.y + 5))
         screen.blit(title_surf, title_rect)
-        price_surf = sub_font.render(f'Price: $ {format_big_number(get_price(self.id))}', False, (255, 255, 255))
+        match(self.currency):
+            case 'score':
+                price = f'Price: $ {format_big_number(get_price(self.id))}'
+            case 'wins':
+                price = f'Price: {format_big_number(get_price(self.id))} wins'
+        price_surf = sub_font.render(price, False, (255, 255, 255))
         price_rect = price_surf.get_rect(topleft=(self.x + self.width + 20, self.y + 30))
         screen.blit(price_surf, price_rect)
         if not self.locked:
@@ -132,14 +141,14 @@ clock = pygame.time.Clock()
 # Phase 1 Buttons
 main_button = Button((70, 150), pygame.image.load('icons/score_button.png').convert_alpha(), pygame.image.load(
     'icons/score_clicked.png').convert_alpha(), 10)
-clear_button = Button((0, 0), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
+clear_button = Button((50, 50), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
     'icons/clear_clicked.png').convert_alpha(), 5)
 upgrade_click_power = Upgrade(1, (500, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
-    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / click', 5, unlocks[0])
+    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / click', 'score', 5, unlocks[0])
 upgrade_passive_income = Upgrade(2, (500, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
-    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / second', 5, unlocks[1])
+    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / second', 'score', 5, unlocks[1])
 upgrade_crit_chance = Upgrade(3, (500, 200), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
-    'icons/upgrade_clicked.png').convert_alpha(), '+1% crit chance', 5, unlocks[2])
+    'icons/upgrade_clicked.png').convert_alpha(), '+1% crit chance', 'score', 5, unlocks[2])
 click_graphic_group = pygame.sprite.Group()
 
 passive_income_timer = pygame.USEREVENT + 1
@@ -158,6 +167,7 @@ for i in range(2):
     ttt_bars.append(v_bar)
 board = GameBoard()
 cooldown = None
+upgrade_ttt_timer = Upgrade(4, (1200, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '-1s / game', 'wins', 5, upgrades[3])
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -189,6 +199,8 @@ while run:
         upgrades = [0, 0, 0, 0]
         unlocks = [True, True, True, True]
         game_phase = 1
+        wins = 0
+        ttt_cooldown = 10
         update_window_size()
 
     # Attempts to purchase an upgrade if a button is clicked
@@ -255,16 +267,32 @@ while run:
             tile.draw(screen)
         for bar in ttt_bars:
             bar.draw(screen)
+        
+        win_surf = body_font.render(f'Wins: {format_big_number(wins)}', False, (255, 255, 255))
+        win_rect = win_surf.get_rect(center=(400, 250))
+        screen.blit(win_surf, win_rect)
+
+        if wins >= 5 and upgrade_ttt_timer.locked:
+            unlocks[3] = False
+        upgrade_ttt_timer.locked = unlocks[3]
+
+        if upgrade_ttt_timer.draw(screen):
+            price = get_price(upgrade_ttt_timer.id)
+            if price <= wins:
+                wins -= price
+                ttt_cooldown -= 1
+                upgrades[3] += 1
 
     pygame.display.update()
     clock.tick(60)
 
     if board.game_over():
         if not cooldown:
-            cooldown = 10000
+            cooldown = max(1000 * ttt_cooldown, 500)
             start = pygame.time.get_ticks()
             if board.check_winner(1):
                 score += 1000
+                wins += 1
         now = pygame.time.get_ticks()
         if now - start > cooldown:
             board = GameBoard()
@@ -276,6 +304,7 @@ data['score'] = score
 data['upgrades'] = upgrades
 data['upgrade_unlocks'] = unlocks
 data['game_phase'] = game_phase
+data['wins'] = wins
 
 with open(filename, 'w') as file:
     json.dump(data, file)
