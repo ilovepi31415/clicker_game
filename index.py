@@ -10,8 +10,8 @@ from tictactoe import GameBoard
 filename = 'savefile.json'
 data = {  # Defaults
     'score': 0,
-    'upgrades': [0, 0, 0, 0],
-    'upgrade_unlocks' : [True, True, True, True],
+    'upgrades': [0, 0, 0, 0, 0],
+    'upgrade_unlocks' : [True, True, True, True, True],
     'game_phase': 1,
     'wins': 0
 }
@@ -31,13 +31,14 @@ points_per_click = upgrades[0] + 1
 points_per_second = upgrades[1]
 crit_chance = upgrades[2]
 ttt_cooldown = 10 - upgrades[3]
+money_per_win = upgrades[4]
 game_phase = data['game_phase']
 wins = data['wins']
 
 # Allows easy setting of window sizes
 window_sizes_by_phase = {
     1: (800, 350),
-    2: (1500, 350),
+    2: (1450, 350),
 }
 
 # Class for the upgrade buttons
@@ -131,7 +132,7 @@ def update_window_size():
 # Pygame initialization
 pygame.init()
 screen = update_window_size()
-pygame.display.set_caption('Clicker Game v0.2')
+pygame.display.set_caption('Clicker Game v0.3')
 title_font = pygame.font.Font('pixelType.ttf', 70)
 body_font = pygame.font.Font('pixelType.ttf', 40)
 sub_font = pygame.font.Font('pixelType.ttf', 25)
@@ -168,6 +169,7 @@ for i in range(2):
 board = GameBoard()
 cooldown = None
 upgrade_ttt_timer = Upgrade(4, (1200, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '-1s / game', 'wins', 5, upgrades[3])
+upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+$100 / win', 'wins', 5, upgrades[3])
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -274,7 +276,10 @@ while run:
 
         if wins >= 5 and upgrade_ttt_timer.locked:
             unlocks[3] = False
+        if wins >= 20 and upgrade_ttt_power.locked:
+            unlocks[4] = False
         upgrade_ttt_timer.locked = unlocks[3]
+        upgrade_ttt_power.locked = unlocks[4]
 
         if upgrade_ttt_timer.draw(screen):
             price = get_price(upgrade_ttt_timer.id)
@@ -282,6 +287,12 @@ while run:
                 wins -= price
                 ttt_cooldown -= 1
                 upgrades[3] += 1
+        if upgrade_ttt_power.draw(screen):
+            price = get_price(upgrade_ttt_power.id)
+            if price <= wins:
+                wins -= price
+                money_per_win += 1
+                upgrades[4] += 1
 
     pygame.display.update()
     clock.tick(60)
@@ -291,7 +302,7 @@ while run:
             cooldown = max(1000 * ttt_cooldown, 500)
             start = pygame.time.get_ticks()
             if board.check_winner(1):
-                score += 1000
+                score += 1000 + (100 * money_per_win)
                 wins += 1
         now = pygame.time.get_ticks()
         if now - start > cooldown:
