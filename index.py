@@ -39,6 +39,7 @@ wins = data['wins']
 window_sizes_by_phase = {
     1: (800, 350),
     2: (1450, 350),
+    3: (1450, 700)
 }
 
 # Class for the upgrade buttons
@@ -141,7 +142,7 @@ body_font = pygame.font.Font('pixelType.ttf', 40)
 sub_font = pygame.font.Font('pixelType.ttf', 25)
 
 clock = pygame.time.Clock()
-goals_values = [10, 100, 1000, 10000, 250000]
+goals_values = [10, 100, 1000, 10000, 250000, 1000000]
 goal_value_index = 0
 
 # Phase 1 Buttons
@@ -182,6 +183,9 @@ while run:
     # Check game phase
     if game_phase == 1 and score >= 10000:
         game_phase = 2
+        screen = update_window_size()
+    if game_phase == 2 and score >= 250000:
+        game_phase = 3
         screen = update_window_size()
     
     screen.fill((0, 0, 0))
@@ -311,6 +315,11 @@ while run:
                 money_per_win += 1
                 upgrades[4] += 1
 
+    if game_phase > 2:
+        phase_3_border = pygame.Surface((1450, 10))
+        phase_3_border.fill((255, 255, 255))
+        screen.blit(phase_3_border, (0, 345)) 
+
     pygame.display.update()
     clock.tick(60)
 
@@ -327,7 +336,6 @@ while run:
             cooldown = None
 # ----------------------------------------------------------------------------------------------------------------------
 pygame.quit()
-print(upgrades)
 data['score'] = score
 data['upgrades'] = upgrades
 data['upgrade_unlocks'] = unlocks
