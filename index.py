@@ -31,7 +31,7 @@ points_per_click = upgrades[0] + 1
 points_per_second = upgrades[1]
 crit_chance = upgrades[2]
 ttt_cooldown = 10 - upgrades[3]
-money_per_win = upgrades[4]
+money_per_win = upgrades[4] + 1
 game_phase = data['game_phase']
 wins = data['wins']
 
@@ -62,9 +62,9 @@ class Upgrade(Button):
         screen.blit(title_surf, title_rect)
         match(self.currency):
             case 'score':
-                price = f'Price: $ {format_big_number(get_price(self.id))}'
+                price = f'Price: $ {format_big_number(get_score_price(self.id))}'
             case 'wins':
-                price = f'Price: {format_big_number(get_price(self.id))} wins'
+                price = f'Price: {format_big_number(get_win_price(self.id))} wins'
         price_surf = sub_font.render(price, False, (255, 255, 255))
         price_rect = price_surf.get_rect(topleft=(self.x + self.width + 20, self.y + 30))
         screen.blit(price_surf, price_rect)
@@ -73,7 +73,7 @@ class Upgrade(Button):
         else:
             screen.blit(self.locked_image, (self.rect.x, self.rect.y))
 
-# Still needs a lot of work
+# The number that pops up
 class Number_Graphic(pygame.sprite.Sprite):
     def __init__(self, n, pos, width, height, crit):
         super().__init__()
@@ -112,10 +112,13 @@ def exp_price(tier):
         price = int(1.2 ** level) + (early_base ** 5) * (level - 4)
     return price
 
-def get_price(tier):
+def get_score_price(tier):
     level = upgrades[tier - 1] + 1
-    exp = tier + 1
     return  (level ** 2) + level * tier
+
+def get_win_price(tier):
+    level = upgrades[tier - 1] + 1
+    return level * max(tier - 3, 1)
 
 def format_big_number(n):
     if n < 1000: return n
@@ -138,11 +141,13 @@ body_font = pygame.font.Font('pixelType.ttf', 40)
 sub_font = pygame.font.Font('pixelType.ttf', 25)
 
 clock = pygame.time.Clock()
+goals_values = [10, 100, 1000, 10000, 250000]
+goal_value_index = 0
 
 # Phase 1 Buttons
 main_button = Button((70, 150), pygame.image.load('icons/score_button.png').convert_alpha(), pygame.image.load(
     'icons/score_clicked.png').convert_alpha(), 10)
-clear_button = Button((50, 50), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
+clear_button = Button((350, 150), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
     'icons/clear_clicked.png').convert_alpha(), 5)
 upgrade_click_power = Upgrade(1, (500, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
     'icons/upgrade_clicked.png').convert_alpha(), '+$1 / click', 'score', 5, unlocks[0])
@@ -169,7 +174,7 @@ for i in range(2):
 board = GameBoard()
 cooldown = None
 upgrade_ttt_timer = Upgrade(4, (1200, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '-1s / game', 'wins', 5, upgrades[3])
-upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+$100 / win', 'wins', 5, upgrades[3])
+upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+$1000 / win', 'wins', 5, upgrades[3])
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -192,14 +197,15 @@ while run:
         added_points = points_per_click * crit_mult
         score += added_points
         click_graphic_group.add(Number_Graphic(added_points, main_button.rect.topleft, main_button.width, main_button.height, crit_mult))
+    
     if clear_button.draw(screen):
         # Resets all values to the defaults as if the user opened a fresh copy
         score = 0
         points_per_click = 1
         points_per_second = 0
         crit_chance = 0
-        upgrades = [0, 0, 0, 0]
-        unlocks = [True, True, True, True]
+        upgrades = [0, 0, 0, 0, 0]
+        unlocks = [True, True, True, True, True]
         game_phase = 1
         wins = 0
         ttt_cooldown = 10
@@ -207,19 +213,19 @@ while run:
 
     # Attempts to purchase an upgrade if a button is clicked
     if upgrade_click_power.draw(screen):
-        price = get_price(upgrade_click_power.id)
+        price = get_score_price(upgrade_click_power.id)
         if price <= score:
             score -= price
             upgrades[0] += 1
             points_per_click += 1
     if upgrade_passive_income.draw(screen):
-        price = get_price(upgrade_passive_income.id)
+        price = get_score_price(upgrade_passive_income.id)
         if price <=  score:
             score -= price
             upgrades[1] += 1
             points_per_second += 1
     if upgrade_crit_chance.draw(screen):
-        price = get_price(upgrade_crit_chance.id)
+        price = get_score_price(upgrade_crit_chance.id)
         if price <=  score:
             score -= price
             upgrades[2] += 1
@@ -244,10 +250,21 @@ while run:
     score_rect = score_surf.get_rect(center=(400, 300))
     screen.blit(score_surf, score_rect)
 
+    # Progress bar
+    progress_bar = pygame.Surface((300, 45))
+    progress_bar.fill((255, 255, 255))
+    screen.blit(progress_bar, (50, 50))
+    goal_percent = min(1, score / goals_values[goal_value_index])
+    if goal_percent == 1:
+        goal_value_index += 1
+    progress = pygame.Surface((290 * goal_percent, 35))
+    progress.fill((0, 0, 0))
+    screen.blit(progress, (55, 55))
+
     if game_phase > 1:
-        rect = pygame.Surface((10, 350))
-        rect.fill((255, 255, 255))
-        screen.blit(rect, (800, 0))
+        phase_2_border = pygame.Surface((10, 350))
+        phase_2_border.fill((255, 255, 255))
+        screen.blit(phase_2_border, (800, 0))
 
         # Handle Tic-Tac-Toe logic
         for i in range(len(ttt_buttons)):
@@ -282,13 +299,13 @@ while run:
         upgrade_ttt_power.locked = unlocks[4]
 
         if upgrade_ttt_timer.draw(screen):
-            price = get_price(upgrade_ttt_timer.id)
+            price = get_win_price(upgrade_ttt_timer.id)
             if price <= wins:
                 wins -= price
                 ttt_cooldown -= 1
                 upgrades[3] += 1
         if upgrade_ttt_power.draw(screen):
-            price = get_price(upgrade_ttt_power.id)
+            price = get_win_price(upgrade_ttt_power.id)
             if price <= wins:
                 wins -= price
                 money_per_win += 1
@@ -302,7 +319,7 @@ while run:
             cooldown = max(1000 * ttt_cooldown, 500)
             start = pygame.time.get_ticks()
             if board.check_winner(1):
-                score += 1000 + (100 * money_per_win)
+                score += 1000 * money_per_win
                 wins += 1
         now = pygame.time.get_ticks()
         if now - start > cooldown:
@@ -310,7 +327,7 @@ while run:
             cooldown = None
 # ----------------------------------------------------------------------------------------------------------------------
 pygame.quit()
-
+print(upgrades)
 data['score'] = score
 data['upgrades'] = upgrades
 data['upgrade_unlocks'] = unlocks
