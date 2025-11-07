@@ -52,3 +52,7 @@ class TTT_Tile(Button):
         self.image = self.image_blank
         self.image_clicked = self.image
         self.locked = False
+
+class Math_Answer(Button):
+    def __init__(self, pos, image, clicked, scale=1, locked=False):
+        super().__init__(pos, image, clicked, scale, locked)

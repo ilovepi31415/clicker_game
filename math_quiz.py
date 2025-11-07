@@ -22,6 +22,7 @@ class Quiz():
                     value -= num
                 case '*':
                     value *= num
+        message += ' = ?'
         self.answer = value
         self.problem = message
         options.add(value)
@@ -35,8 +36,7 @@ def main():
     while True:
         quiz.generate_problem()
         print(quiz.problem)
-        print(quiz.options)
-        guess = input(" = ")
+        guess = input("")
         if int(guess) != quiz.answer:
             print(f"wrong, it was {quiz.answer}")
             break

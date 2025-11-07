@@ -5,6 +5,7 @@ from random import randint
 from button import Button, TTT_Tile
 from rectangle import Rectangle
 from tictactoe import GameBoard
+from math_quiz import Quiz
 
 # Info for loading and saving data
 filename = 'savefile.json'
@@ -39,7 +40,7 @@ wins = data['wins']
 window_sizes_by_phase = {
     1: (800, 350),
     2: (1450, 350),
-    3: (1450, 700)
+    3: (1450, 800)
 }
 
 # Class for the upgrade buttons
@@ -137,6 +138,8 @@ def update_window_size():
 pygame.init()
 screen = update_window_size()
 pygame.display.set_caption('Clicker Game v0.3')
+giant_font = pygame.font.Font('pixelType.ttf', 200)
+math_font = pygame.font.Font('pixelType.ttf', 150)
 title_font = pygame.font.Font('pixelType.ttf', 70)
 body_font = pygame.font.Font('pixelType.ttf', 40)
 sub_font = pygame.font.Font('pixelType.ttf', 25)
@@ -176,6 +179,12 @@ board = GameBoard()
 cooldown = None
 upgrade_ttt_timer = Upgrade(4, (1200, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '-1s / game', 'wins', 5, upgrades[3])
 upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+$1000 / win', 'wins', 5, upgrades[3])
+
+# Phase 3 Buttons
+quiz = Quiz()
+option_1 = Button((60, 550), pygame.image.load('icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
+option_2 = Button((360, 550), pygame.image.load('icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
+option_3 = Button((660, 550), pygame.image.load('icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -318,7 +327,29 @@ while run:
     if game_phase > 2:
         phase_3_border = pygame.Surface((1450, 10))
         phase_3_border.fill((255, 255, 255))
-        screen.blit(phase_3_border, (0, 345)) 
+        screen.blit(phase_3_border, (0, 345))
+
+        if not quiz.answer:
+            quiz.generate_problem()
+        math_problem_surf = giant_font.render(quiz.problem, False, (255, 255, 255))
+        math_problem_rect = math_problem_surf.get_rect(center=(500, 475))
+        screen.blit(math_problem_surf, math_problem_rect)
+
+        if option_1.draw(screen):
+            quiz.generate_problem()
+        option_1_text = math_font.render(str(quiz.options[0]), False, (255, 255, 255))
+        option_1_text_rect = option_1_text.get_rect(center=(180, 640))
+        screen.blit(option_1_text, option_1_text_rect)
+        if option_2.draw(screen):
+            quiz.generate_problem()
+        option_2_text = math_font.render(str(quiz.options[1]), False, (255, 255, 255))
+        option_2_text_rect = option_2_text.get_rect(center=(480, 640))
+        screen.blit(option_2_text, option_2_text_rect)
+        if option_3.draw(screen):
+            quiz.generate_problem()
+        option_3_text = math_font.render(str(quiz.options[2]), False, (255, 255, 255))
+        option_3_text_rect = option_3_text.get_rect(center=(780, 640))
+        screen.blit(option_3_text, option_3_text_rect)
 
     pygame.display.update()
     clock.tick(60)
