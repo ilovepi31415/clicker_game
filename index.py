@@ -13,8 +13,8 @@ data = {  # Defaults
     'score': 0,
     'wins': 0,
     'iq': 0,
-    'upgrades': [0, 0, 0, 0, 0],
-    'upgrade_unlocks' : [True, True, True, True, True],
+    'upgrades': [0] * 7,
+    'upgrade_unlocks' : [True] * 7,
     'game_phase': 1,
 }
 
@@ -36,6 +36,8 @@ points_per_second = upgrades[1]
 crit_chance = upgrades[2]
 ttt_cooldown = 10 - upgrades[3]
 money_per_win = upgrades[4] + 1
+wins_per_game = upgrades[5] + 1
+score_multiplier = upgrades[6] + 1
 game_phase = data['game_phase']
 
 # Allows easy setting of window sizes
@@ -66,9 +68,11 @@ class Upgrade(Button):
         screen.blit(title_surf, title_rect)
         match(self.currency):
             case 'score':
-                price = f'Price: $ {format_big_number(get_score_price(self.id))}'
+                price = f'Price: $ {format_big_number(get_quadratic_price(self.id))}'
             case 'wins':
-                price = f'Price: {format_big_number(get_win_price(self.id))} wins'
+                price = f'Price: {format_big_number(get_linear_price(self.id))} wins'
+            case 'iq':
+                price = f'Price: {format_big_number(get_quadratic_price(self.id))} IQ'
         price_surf = sub_font.render(price, False, (255, 255, 255))
         price_rect = price_surf.get_rect(topleft=(self.x + self.width + 20, self.y + 30))
         screen.blit(price_surf, price_rect)
@@ -116,11 +120,11 @@ def exp_price(tier):
         price = int(1.2 ** level) + (early_base ** 5) * (level - 4)
     return price
 
-def get_score_price(tier):
+def get_quadratic_price(tier):
     level = upgrades[tier - 1] + 1
     return  (level ** 2) + level * tier
 
-def get_win_price(tier):
+def get_linear_price(tier):
     level = upgrades[tier - 1] + 1
     return level * max(tier - 3, 1)
 
@@ -139,7 +143,7 @@ def update_window_size():
 # Pygame initialization
 pygame.init()
 screen = update_window_size()
-pygame.display.set_caption('Clicker Game v0.3')
+pygame.display.set_caption('Clicker Game v0.4')
 giant_font = pygame.font.Font('pixelType.ttf', 200)
 math_font = pygame.font.Font('pixelType.ttf', 150)
 title_font = pygame.font.Font('pixelType.ttf', 70)
@@ -180,13 +184,15 @@ for i in range(2):
 board = GameBoard()
 cooldown = None
 upgrade_ttt_timer = Upgrade(4, (1200, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '-1s / game', 'wins', 5, upgrades[3])
-upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+$1000 / win', 'wins', 5, upgrades[3])
+upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+$1000 / win', 'wins', 5, upgrades[4])
 
 # Phase 3 Buttons
 quiz = Quiz()
 option_1 = Button((60, 550), pygame.image.load('icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
 option_2 = Button((360, 550), pygame.image.load('icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
 option_3 = Button((660, 550), pygame.image.load('icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
+upgrade_math_power = Upgrade(6, (1200, 500), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 win / win', 'iq', 5, upgrades[5])
+upgrade_score_multiplier = Upgrade(7, (1200, 575), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 Score Mult', 'iq', 6, upgrades[6])
 
 # Game Loop goes here --------------------------------------------------------------------------------------------------
 run = True
@@ -209,7 +215,7 @@ while run:
     if main_button.draw(screen):
         # Creates the small graphic on the button and adds the money to the user's total
         crit_mult =  check_crit(crit_chance)
-        added_points = points_per_click * crit_mult
+        added_points = points_per_click * crit_mult * score_multiplier
         score += added_points
         click_graphic_group.add(Number_Graphic(added_points, main_button.rect.topleft, main_button.width, main_button.height, crit_mult))
     
@@ -219,28 +225,30 @@ while run:
         points_per_click = 1
         points_per_second = 0
         crit_chance = 0
-        upgrades = [0, 0, 0, 0, 0]
-        unlocks = [True, True, True, True, True]
+        upgrades = [0] * 7
+        unlocks = [True] * 7
         game_phase = 1
         wins = 0
+        iq = 0
         ttt_cooldown = 10
+        wins_per_game = 1
         update_window_size()
 
     # Attempts to purchase an upgrade if a button is clicked
     if upgrade_click_power.draw(screen):
-        price = get_score_price(upgrade_click_power.id)
+        price = get_quadratic_price(upgrade_click_power.id)
         if price <= score:
             score -= price
             upgrades[0] += 1
             points_per_click += 1
     if upgrade_passive_income.draw(screen):
-        price = get_score_price(upgrade_passive_income.id)
+        price = get_quadratic_price(upgrade_passive_income.id)
         if price <=  score:
             score -= price
             upgrades[1] += 1
             points_per_second += 1
     if upgrade_crit_chance.draw(screen):
-        price = get_score_price(upgrade_crit_chance.id)
+        price = get_quadratic_price(upgrade_crit_chance.id)
         if price <=  score:
             score -= price
             upgrades[2] += 1
@@ -314,13 +322,13 @@ while run:
         upgrade_ttt_power.locked = unlocks[4]
 
         if upgrade_ttt_timer.draw(screen):
-            price = get_win_price(upgrade_ttt_timer.id)
+            price = get_linear_price(upgrade_ttt_timer.id)
             if price <= wins:
                 wins -= price
                 ttt_cooldown -= 1
                 upgrades[3] += 1
         if upgrade_ttt_power.draw(screen):
-            price = get_win_price(upgrade_ttt_power.id)
+            price = get_linear_price(upgrade_ttt_power.id)
             if price <= wins:
                 wins -= price
                 money_per_win += 1
@@ -369,6 +377,24 @@ while run:
         iq_rect = iq_surf.get_rect(center=(400, 215))
         screen.blit(iq_surf, iq_rect)
 
+        if upgrade_math_power.draw(screen):
+            price = get_quadratic_price(upgrade_math_power.id)
+            if price <= iq:
+                iq -= price
+                wins_per_game += 1
+                upgrades[5] += 1
+        if upgrade_score_multiplier.draw(screen):
+            price = get_quadratic_price(upgrade_score_multiplier.id)
+            if price <= iq:
+                iq -= price
+                score_multiplier += 1
+                upgrades[6] += 1
+        
+        if iq >= 10 and upgrade_math_power.locked:
+            unlocks[5] = False
+        upgrade_math_power.locked = unlocks[5]
+
+
     pygame.display.update()
     clock.tick(60)
 
@@ -378,7 +404,7 @@ while run:
             start = pygame.time.get_ticks()
             if board.check_winner(1):
                 score += 1000 * money_per_win
-                wins += 1
+                wins += wins_per_game
         now = pygame.time.get_ticks()
         if now - start > cooldown:
             board = GameBoard()
