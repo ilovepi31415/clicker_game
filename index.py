@@ -11,10 +11,11 @@ from math_quiz import Quiz
 filename = 'savefile.json'
 data = {  # Defaults
     'score': 0,
+    'wins': 0,
+    'iq': 0,
     'upgrades': [0, 0, 0, 0, 0],
     'upgrade_unlocks' : [True, True, True, True, True],
     'game_phase': 1,
-    'wins': 0
 }
 
 try:
@@ -26,6 +27,8 @@ except FileNotFoundError:
 
 # Assign JSON values to python variables
 score = data['score']
+wins = data['wins']
+iq = data['iq']
 upgrades = data['upgrades']
 unlocks = data['upgrade_unlocks']
 points_per_click = upgrades[0] + 1
@@ -34,7 +37,6 @@ crit_chance = upgrades[2]
 ttt_cooldown = 10 - upgrades[3]
 money_per_win = upgrades[4] + 1
 game_phase = data['game_phase']
-wins = data['wins']
 
 # Allows easy setting of window sizes
 window_sizes_by_phase = {
@@ -151,7 +153,7 @@ goal_value_index = 0
 # Phase 1 Buttons
 main_button = Button((70, 150), pygame.image.load('icons/score_button.png').convert_alpha(), pygame.image.load(
     'icons/score_clicked.png').convert_alpha(), 10)
-clear_button = Button((350, 150), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
+clear_button = Button((305, 100), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
     'icons/clear_clicked.png').convert_alpha(), 5)
 upgrade_click_power = Upgrade(1, (500, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
     'icons/upgrade_clicked.png').convert_alpha(), '+$1 / click', 'score', 5, unlocks[0])
@@ -336,20 +338,36 @@ while run:
         screen.blit(math_problem_surf, math_problem_rect)
 
         if option_1.draw(screen):
+            if quiz.options[0] == quiz.answer:
+                iq += 1
+            else:
+                iq = max(iq - 1, 0)
             quiz.generate_problem()
         option_1_text = math_font.render(str(quiz.options[0]), False, (255, 255, 255))
         option_1_text_rect = option_1_text.get_rect(center=(180, 640))
         screen.blit(option_1_text, option_1_text_rect)
         if option_2.draw(screen):
+            if quiz.options[1] == quiz.answer:
+                iq += 1
+            else:
+                iq = max(iq - 1, 0)
             quiz.generate_problem()
         option_2_text = math_font.render(str(quiz.options[1]), False, (255, 255, 255))
         option_2_text_rect = option_2_text.get_rect(center=(480, 640))
         screen.blit(option_2_text, option_2_text_rect)
         if option_3.draw(screen):
+            if quiz.options[2] == quiz.answer:
+                iq += 1
+            else:
+                iq = max(iq - 1, 0)
             quiz.generate_problem()
         option_3_text = math_font.render(str(quiz.options[2]), False, (255, 255, 255))
         option_3_text_rect = option_3_text.get_rect(center=(780, 640))
         screen.blit(option_3_text, option_3_text_rect)
+
+        iq_surf = body_font.render(f'IQ: {format_big_number(iq)}', False, (255, 255, 255))
+        iq_rect = iq_surf.get_rect(center=(400, 215))
+        screen.blit(iq_surf, iq_rect)
 
     pygame.display.update()
     clock.tick(60)
@@ -372,6 +390,7 @@ data['upgrades'] = upgrades
 data['upgrade_unlocks'] = unlocks
 data['game_phase'] = game_phase
 data['wins'] = wins
+data['iq'] = iq
 
 with open(filename, 'w') as file:
     json.dump(data, file)
