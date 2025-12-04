@@ -3,6 +3,7 @@ from random import randint
 PLAYER = 1
 AI = 2
 
+
 class GameBoard():
     markers = [' ', 'X', 'O']
 
@@ -48,7 +49,7 @@ class GameBoard():
         self.human_turn = True
         if not self.move_ai_block():
             self.move_ai_random()
-    
+
     def move_ai_good(self):
         self.human_turn = True
         if self.move_ai_block():
@@ -86,30 +87,33 @@ class GameBoard():
 
     def check_winner(self, player):
         return (
-                # horizontal row
-                self.state[0] == self.state[1] == self.state[2] == player or
-                self.state[3] == self.state[4] == self.state[5] == player or
-                self.state[6] == self.state[7] == self.state[8] == player
-            ) or (
-                # vertical row
-                self.state[0] == self.state[3] == self.state[6] == player or
-                self.state[1] == self.state[4] == self.state[7] == player or
-                self.state[2] == self.state[5] == self.state[8] == player
-            ) or (
-                # diagonal
-                self.state[0] == self.state[4] == self.state[8] == player or
-                self.state[2] == self.state[4] == self.state[6] == player
-            )
-    
+            # horizontal row
+            self.state[0] == self.state[1] == self.state[2] == player or
+            self.state[3] == self.state[4] == self.state[5] == player or
+            self.state[6] == self.state[7] == self.state[8] == player
+        ) or (
+            # vertical row
+            self.state[0] == self.state[3] == self.state[6] == player or
+            self.state[1] == self.state[4] == self.state[7] == player or
+            self.state[2] == self.state[5] == self.state[8] == player
+        ) or (
+            # diagonal
+            self.state[0] == self.state[4] == self.state[8] == player or
+            self.state[2] == self.state[4] == self.state[6] == player
+        )
+
     def check_cat(self):
         return self.turn == 9
-    
+
     def game_over(self):
-        return self.check_cat() or self.check_winner(AI) or self.check_winner(PLAYER)
+        return (self.check_cat() or
+                self.check_winner(AI) or
+                self.check_winner(PLAYER))
 
     def clear(self):
         for i in range(len(self.state)):
             self.state[i] = 0
+
 
 def main():
     print("hi tic tac toe")
@@ -130,6 +134,7 @@ def main():
         if board.turn == 9:
             print("Cat game")
             break
+
 
 if __name__ == "__main__":
     main()
