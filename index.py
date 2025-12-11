@@ -7,6 +7,8 @@ from rectangle import Rectangle
 from tictactoe import GameBoard
 from math_quiz import Quiz
 
+TICKRATE = 60
+
 # Info for loading and saving data
 filename = 'savefile.json'
 data = {  # Defaults
@@ -16,6 +18,7 @@ data = {  # Defaults
     'upgrades': [0] * 7,
     'upgrade_unlocks': [True] * 7,
     'game_phase': 1,
+    'tick': 0,
 }
 
 try:
@@ -39,6 +42,7 @@ money_per_win = upgrades[4] + 1
 wins_per_game = upgrades[5] + 1
 score_multiplier = upgrades[6] + 1
 game_phase = data['game_phase']
+tick = data['tick']
 
 # Allows easy setting of window sizes
 window_sizes_by_phase = {
@@ -161,6 +165,10 @@ def format_big_number(n):
         return str(small) + 'e' + str(orders_of_magnitude * 3)
 
 
+def find_time(ticks):
+    return f"{ticks // (60 * 60 * TICKRATE)}:{(ticks // (60 * TICKRATE)) % 60}:{(ticks // TICKRATE) % 60} {ticks % TICKRATE}f"
+
+
 def update_window_size():
     return pygame.display.set_mode(window_sizes_by_phase[game_phase])
 
@@ -225,7 +233,7 @@ option_3 = Button((660, 550), pygame.image.load(
 upgrade_math_power = Upgrade(6, (1200, 500), pygame.image.load('icons/upgrade_button.png').convert_alpha(
 ), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 win / win', 'iq', 5, upgrades[5])
 upgrade_score_multiplier = Upgrade(7, (1200, 575), pygame.image.load('icons/upgrade_button.png').convert_alpha(
-), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 Score Mult', 'iq', 6, upgrades[6])
+), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 Score Mult', 'iq', 5, upgrades[6])
 
 trophy_scale = 20
 trophy_surf = pygame.transform.scale(pygame.image.load(
@@ -237,6 +245,9 @@ trophy_rect.topleft = (1525, 400)
 run = True
 try:
     while run:
+        if game_phase < 4:
+            tick += 1
+
         # Check game phase
         if game_phase == 1 and score >= 10000:
             game_phase = 2
@@ -276,6 +287,7 @@ try:
             iq = 0
             ttt_cooldown = 10
             wins_per_game = 1
+            tick = 0
             update_window_size()
 
         # Attempts to purchase an upgrade if a button is clicked
@@ -441,18 +453,27 @@ try:
                     score_multiplier += 1
                     upgrades[6] += 1
 
+            if iq >= 10 and upgrade_math_power.locked:
+                unlocks[5] = False
+            upgrade_math_power.locked = unlocks[5]
+
         if game_phase >= 4:
             phase_4_border = pygame.Surface((10, 800))
             phase_4_border.fill((255, 255, 255))
             screen.blit(phase_4_border, (1445, 0))
             screen.blit(trophy_surf, (trophy_rect.x, trophy_rect.y))
 
-            if iq >= 10 and upgrade_math_power.locked:
-                unlocks[5] = False
-            upgrade_math_power.locked = unlocks[5]
+            congrats_surf = giant_font.render(
+                "You Win!", False, (255, 255, 255))
+            congrats_rect = congrats_surf.get_rect(center=(1730, 100))
+            screen.blit(congrats_surf, congrats_rect)
+
+            time_surf = title_font.render(f"Time: {find_time(tick)}", False, (255, 255, 255))
+            time_rect = time_surf.get_rect(center=(1730, 200))
+            screen.blit(time_surf, time_rect)
 
         pygame.display.update()
-        clock.tick(60)
+        clock.tick(TICKRATE)
 
         if board.game_over():
             if not cooldown:
@@ -475,6 +496,7 @@ data['upgrade_unlocks'] = unlocks
 data['game_phase'] = game_phase
 data['wins'] = wins
 data['iq'] = iq
+data['tick'] = tick
 
 with open(filename, 'w') as file:
     json.dump(data, file)
