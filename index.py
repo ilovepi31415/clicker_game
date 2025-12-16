@@ -185,7 +185,7 @@ def update_window_size():
 # Pygame initialization
 pygame.init()
 screen = update_window_size()
-pygame.display.set_caption('Clicker Game v0.4')
+pygame.display.set_caption('Clicker Game v1.0')
 giant_font = pygame.font.Font('pixelType.ttf', 200)
 math_font = pygame.font.Font('pixelType.ttf', 150)
 title_font = pygame.font.Font('pixelType.ttf', 70)
@@ -261,7 +261,7 @@ try:
         if game_phase == 1 and score >= 10000:
             game_phase = 2
             screen = update_window_size()
-        if game_phase == 2 and score >= 250000:
+        if game_phase == 2 and score >= 100000:
             game_phase = 3
             screen = update_window_size()
         if game_phase == 3 and score >= 1000000:
@@ -477,7 +477,7 @@ try:
 
             if iq >= 10 and upgrade_math_power.locked:
                 unlocks[TTT_EARNINGS_WINS] = False
-            if iq >= 30 and upgrade_ai_level.locked:
+            if iq >= 20 and upgrade_ai_level.locked:
                 unlocks[AI_LEVEL] = False
             upgrade_math_power.locked = unlocks[TTT_EARNINGS_WINS]
             upgrade_ai_level.locked = unlocks[AI_LEVEL]
