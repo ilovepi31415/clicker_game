@@ -16,6 +16,7 @@ COOLDOWN_TTT = 3
 TTT_EARNINGS_MONEY = 4
 TTT_EARNINGS_WINS = 5
 SCORE_MULTIPLIER = 6
+AI_LEVEL = 7
 
 # Info for loading and saving data
 filename = 'savefile.json'
@@ -23,8 +24,8 @@ data = {  # Defaults
     'score': 0,
     'wins': 0,
     'iq': 0,
-    'upgrades': [0] * 7,
-    'upgrade_unlocks': [True] * 7,
+    'upgrades': [0] * 8,
+    'upgrade_unlocks': [True] * 8,
     'game_phase': 1,
     'tick': 0,
 }
@@ -174,7 +175,7 @@ def format_big_number(n):
 
 
 def find_time(ticks):
-    return f"{ticks // (60 * 60 * TICKRATE)}:{(ticks // (60 * TICKRATE)) % 60}:{(ticks // TICKRATE) % 60} {ticks % TICKRATE}f"
+    return f"{ticks // (60 * 60 * TICKRATE)}:{(ticks // (60 * TICKRATE)) % 60}:{(ticks // TICKRATE) % 60}.{ticks % TICKRATE * 1000 // TICKRATE}"
 
 
 def update_window_size():
@@ -192,7 +193,7 @@ body_font = pygame.font.Font('pixelType.ttf', 40)
 sub_font = pygame.font.Font('pixelType.ttf', 25)
 
 clock = pygame.time.Clock()
-goals_values = [10, 100, 1000, 10000, 250000, 1000000, float("inf")]
+goals_values = [10, 100, 1000, 10000, 100000, 1000000, float("inf")]
 goal_value_index = 0
 
 # Phase 1 Buttons
@@ -225,10 +226,12 @@ for i in range(2):
     ttt_bars.append(v_bar)
 board = GameBoard()
 cooldown = None
-upgrade_ttt_timer = Upgrade(4, (1200, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(
-), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '-1s / game', 'wins', 5, upgrades[3])
-upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(
-), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+$1000 / win', 'wins', 5, upgrades[4])
+upgrade_ttt_timer = Upgrade(4, (1200, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
+    'icons/upgrade_clicked.png').convert_alpha(), '-1s / game', 'wins', 5, upgrades[3])
+upgrade_ttt_power = Upgrade(5, (1200, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
+    'icons/upgrade_clicked.png').convert_alpha(), '+$1000 / win', 'wins', 5, upgrades[4])
+upgrade_score_multiplier = Upgrade(7, (1200, 200), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
+    'icons/upgrade_clicked.png').convert_alpha(), '+1 Score Mult', 'wins', 5, upgrades[6])
 
 # Phase 3 Buttons
 quiz = Quiz()
@@ -238,10 +241,8 @@ option_2 = Button((360, 550), pygame.image.load(
     'icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
 option_3 = Button((660, 550), pygame.image.load(
     'icons/outline_button.png').convert_alpha(), pygame.image.load('icons/outline_clicked.png'), 10)
-upgrade_math_power = Upgrade(6, (1200, 500), pygame.image.load('icons/upgrade_button.png').convert_alpha(
-), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 win / win', 'iq', 5, upgrades[5])
-upgrade_score_multiplier = Upgrade(7, (1200, 575), pygame.image.load('icons/upgrade_button.png').convert_alpha(
-), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 Score Mult', 'iq', 5, upgrades[6])
+upgrade_math_power = Upgrade(6, (1200, 500), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), '+1 Win Mult', 'iq', 5, upgrades[5])
+upgrade_ai_level = Upgrade(8, (1200, 575), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load('icons/upgrade_clicked.png').convert_alpha(), 'Easier AI', 'iq', 5, upgrades[7])
 
 trophy_scale = 20
 trophy_surf = pygame.transform.scale(pygame.image.load(
@@ -288,8 +289,8 @@ try:
             points_per_click = 1
             points_per_second = 0
             crit_chance = 0
-            upgrades = [0] * 7
-            unlocks = [True] * 7
+            upgrades = [0] * 8
+            unlocks = [True] * 8
             game_phase = 1
             wins = 0
             iq = 0
@@ -297,6 +298,7 @@ try:
             wins_per_game = 1
             tick = 0
             goal_value_index = 0
+            score_multiplier = 1
             update_window_size()
 
         # Attempts to purchase an upgrade if a button is clicked
@@ -362,7 +364,10 @@ try:
                 if not board.game_over() and tile.was_clicked(screen):
                     board.move_human(i)
                     if not board.game_over():
-                        board.move_ai_naive()
+                        if upgrades[AI_LEVEL] == 0:
+                            board.move_ai_naive()
+                        else:
+                            board.move_ai_random()
             # Draw tiles to the screen
             for i in range(len(ttt_buttons)):
                 tile = ttt_buttons[i]
@@ -385,8 +390,11 @@ try:
                 unlocks[COOLDOWN_TTT] = False
             if wins >= 5 and upgrade_ttt_power.locked:
                 unlocks[TTT_EARNINGS_MONEY] = False
+            if wins >= 10 and upgrade_score_multiplier.locked:
+                unlocks[SCORE_MULTIPLIER] = False
             upgrade_ttt_timer.locked = unlocks[COOLDOWN_TTT]
             upgrade_ttt_power.locked = unlocks[TTT_EARNINGS_MONEY]
+            upgrade_score_multiplier.locked = unlocks[SCORE_MULTIPLIER]
 
             if upgrade_ttt_timer.draw(screen):
                 price = get_linear_price(upgrade_ttt_timer.id)
@@ -400,6 +408,12 @@ try:
                     wins -= price
                     money_per_win += 1
                     upgrades[TTT_EARNINGS_MONEY] += 1
+            if upgrade_score_multiplier.draw(screen):
+                price = get_linear_price(upgrade_score_multiplier.id)
+                if price <= wins:
+                    wins -= price
+                    score_multiplier += 1
+                    upgrades[SCORE_MULTIPLIER] += 1
 
         if game_phase >= 3:
             phase_3_border = pygame.Surface((1450, 10))
@@ -455,19 +469,18 @@ try:
                     iq -= price
                     wins_per_game += 1
                     upgrades[TTT_EARNINGS_WINS] += 1
-            if upgrade_score_multiplier.draw(screen):
-                price = get_quadratic_price(upgrade_score_multiplier.id)
+            if upgrade_ai_level.draw(screen):
+                price = get_quadratic_price(upgrade_ai_level.id)
                 if price <= iq:
                     iq -= price
-                    score_multiplier += 1
-                    upgrades[SCORE_MULTIPLIER] += 1
+                    upgrades[AI_LEVEL] += 1
 
             if iq >= 10 and upgrade_math_power.locked:
                 unlocks[TTT_EARNINGS_WINS] = False
-            if iq >= 20 and upgrade_score_multiplier.locked:
-                unlocks[SCORE_MULTIPLIER] = False
+            if iq >= 30 and upgrade_ai_level.locked:
+                unlocks[AI_LEVEL] = False
             upgrade_math_power.locked = unlocks[TTT_EARNINGS_WINS]
-            upgrade_score_multiplier.locked = unlocks[SCORE_MULTIPLIER]
+            upgrade_ai_level.locked = unlocks[AI_LEVEL]
 
         if game_phase >= 4:
             phase_4_border = pygame.Surface((10, 800))
