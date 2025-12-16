@@ -9,6 +9,14 @@ from math_quiz import Quiz
 
 TICKRATE = 60
 
+PER_CLICK = 0
+IDLE_EARNINGS = 1
+CRIT_CHANCE = 2
+COOLDOWN_TTT = 3
+TTT_EARNINGS_MONEY = 4
+TTT_EARNINGS_WINS = 5
+SCORE_MULTIPLIER = 6
+
 # Info for loading and saving data
 filename = 'savefile.json'
 data = {  # Defaults
@@ -34,13 +42,13 @@ wins = data['wins']
 iq = data['iq']
 upgrades = data['upgrades']
 unlocks = data['upgrade_unlocks']
-points_per_click = upgrades[0] + 1
-points_per_second = upgrades[1]
-crit_chance = upgrades[2]
-ttt_cooldown = 10 - upgrades[3]
-money_per_win = upgrades[4] + 1
-wins_per_game = upgrades[5] + 1
-score_multiplier = upgrades[6] + 1
+points_per_click = upgrades[PER_CLICK] + 1
+points_per_second = upgrades[IDLE_EARNINGS]
+crit_chance = upgrades[CRIT_CHANCE]
+ttt_cooldown = 10 - upgrades[COOLDOWN_TTT]
+money_per_win = upgrades[TTT_EARNINGS_MONEY] + 1
+wins_per_game = upgrades[TTT_EARNINGS_WINS] + 1
+score_multiplier = upgrades[SCORE_MULTIPLIER] + 1
 game_phase = data['game_phase']
 tick = data['tick']
 
@@ -193,11 +201,11 @@ main_button = Button((70, 150), pygame.image.load('icons/score_button.png').conv
 clear_button = Button((305, 100), pygame.image.load('icons/clear_button.png').convert_alpha(), pygame.image.load(
     'icons/clear_clicked.png').convert_alpha(), 5)
 upgrade_click_power = Upgrade(1, (500, 50), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
-    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / click', 'score', 5, unlocks[0])
+    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / click', 'score', 5, unlocks[PER_CLICK])
 upgrade_passive_income = Upgrade(2, (500, 125), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
-    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / second', 'score', 5, unlocks[1])
+    'icons/upgrade_clicked.png').convert_alpha(), '+$1 / second', 'score', 5, unlocks[IDLE_EARNINGS])
 upgrade_crit_chance = Upgrade(3, (500, 200), pygame.image.load('icons/upgrade_button.png').convert_alpha(), pygame.image.load(
-    'icons/upgrade_clicked.png').convert_alpha(), '+1% crit chance', 'score', 5, unlocks[2])
+    'icons/upgrade_clicked.png').convert_alpha(), '+1% crit chance', 'score', 5, unlocks[CRIT_CHANCE])
 click_graphic_group = pygame.sprite.Group()
 
 passive_income_timer = pygame.USEREVENT + 1
@@ -288,6 +296,7 @@ try:
             ttt_cooldown = 10
             wins_per_game = 1
             tick = 0
+            goal_value_index = 0
             update_window_size()
 
         # Attempts to purchase an upgrade if a button is clicked
@@ -295,31 +304,31 @@ try:
             price = get_quadratic_price(upgrade_click_power.id)
             if price <= score:
                 score -= price
-                upgrades[0] += 1
+                upgrades[PER_CLICK] += 1
                 points_per_click += 1
         if upgrade_passive_income.draw(screen):
             price = get_quadratic_price(upgrade_passive_income.id)
             if price <= score:
                 score -= price
-                upgrades[1] += 1
+                upgrades[IDLE_EARNINGS] += 1
                 points_per_second += 1
         if upgrade_crit_chance.draw(screen):
             price = get_quadratic_price(upgrade_crit_chance.id)
             if price <= score:
                 score -= price
-                upgrades[2] += 1
+                upgrades[CRIT_CHANCE] += 1
                 crit_chance += 1
 
         # Unlocking checks for the various upgrades
         if score >= 10 and upgrade_click_power.locked:
-            unlocks[0] = False
+            unlocks[PER_CLICK] = False
         if score >= 10 ** 2 and upgrade_passive_income.locked:
-            unlocks[1] = False
+            unlocks[IDLE_EARNINGS] = False
         if score >= 10 ** 3 and upgrade_crit_chance.locked:
-            unlocks[2] = False
-        upgrade_click_power.locked = unlocks[0]
-        upgrade_passive_income.locked = unlocks[1]
-        upgrade_crit_chance.locked = unlocks[2]
+            unlocks[CRIT_CHANCE] = False
+        upgrade_click_power.locked = unlocks[PER_CLICK]
+        upgrade_passive_income.locked = unlocks[IDLE_EARNINGS]
+        upgrade_crit_chance.locked = unlocks[CRIT_CHANCE]
 
         # Updates the fading of all graphics
         click_graphic_group.update()
@@ -372,25 +381,25 @@ try:
             win_rect = win_surf.get_rect(center=(400, 250))
             screen.blit(win_surf, win_rect)
 
-            if wins >= 5 and upgrade_ttt_timer.locked:
-                unlocks[3] = False
-            if wins >= 10 and upgrade_ttt_power.locked:
-                unlocks[4] = False
-            upgrade_ttt_timer.locked = unlocks[3]
-            upgrade_ttt_power.locked = unlocks[4]
+            if wins >= 2 and upgrade_ttt_timer.locked:
+                unlocks[COOLDOWN_TTT] = False
+            if wins >= 5 and upgrade_ttt_power.locked:
+                unlocks[TTT_EARNINGS_MONEY] = False
+            upgrade_ttt_timer.locked = unlocks[COOLDOWN_TTT]
+            upgrade_ttt_power.locked = unlocks[TTT_EARNINGS_MONEY]
 
             if upgrade_ttt_timer.draw(screen):
                 price = get_linear_price(upgrade_ttt_timer.id)
                 if price <= wins:
                     wins -= price
                     ttt_cooldown -= 1
-                    upgrades[3] += 1
+                    upgrades[COOLDOWN_TTT] += 1
             if upgrade_ttt_power.draw(screen):
                 price = get_linear_price(upgrade_ttt_power.id)
                 if price <= wins:
                     wins -= price
                     money_per_win += 1
-                    upgrades[4] += 1
+                    upgrades[TTT_EARNINGS_MONEY] += 1
 
         if game_phase >= 3:
             phase_3_border = pygame.Surface((1450, 10))
@@ -445,17 +454,20 @@ try:
                 if price <= iq:
                     iq -= price
                     wins_per_game += 1
-                    upgrades[5] += 1
+                    upgrades[TTT_EARNINGS_WINS] += 1
             if upgrade_score_multiplier.draw(screen):
                 price = get_quadratic_price(upgrade_score_multiplier.id)
                 if price <= iq:
                     iq -= price
                     score_multiplier += 1
-                    upgrades[6] += 1
+                    upgrades[SCORE_MULTIPLIER] += 1
 
             if iq >= 10 and upgrade_math_power.locked:
-                unlocks[5] = False
-            upgrade_math_power.locked = unlocks[5]
+                unlocks[TTT_EARNINGS_WINS] = False
+            if iq >= 20 and upgrade_score_multiplier.locked:
+                unlocks[SCORE_MULTIPLIER] = False
+            upgrade_math_power.locked = unlocks[TTT_EARNINGS_WINS]
+            upgrade_score_multiplier.locked = unlocks[SCORE_MULTIPLIER]
 
         if game_phase >= 4:
             phase_4_border = pygame.Surface((10, 800))
